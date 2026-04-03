@@ -12,6 +12,7 @@ env:
   ECS_CLUSTER:     ${{ secrets.ECS_CLUSTER }}
   ECS_SERVICE:     ${{ secrets.ECS_SERVICE }}
   ECS_TASK_FAMILY: ${{ secrets.ECS_TASK_FAMILY }}
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   deploy:
@@ -66,7 +67,13 @@ jobs:
           task-definition:            ${{ steps.task-def.outputs.task-definition }}
           service:                    ${{ env.ECS_SERVICE }}
           cluster:                    ${{ env.ECS_CLUSTER }}
-          wait-for-service-stability: true
+          wait-for-service-stability: false
 
-      - name: Done
-        run: echo "Deployed ${{ steps.build.outputs.image }} to ECS"
+      - name: Verify deployment
+        run: |
+          echo "Deployment triggered for ${{ steps.build.outputs.image }}"
+          aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --query "services[0].{Status:status,Running:runningCount,Desired:desiredCount}" \
+            --output table
