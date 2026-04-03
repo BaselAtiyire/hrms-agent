@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Secrets & config
+.env
+*.env
+prod.tfvars
+*.tfvars
+!*.tfvars.example
+
+# Database & logs
+*.db
+*.sqlite
+*.log
+agent_memory.json
+audit.log
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+terraform.exe
+
+# IDE
+.cursor/
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

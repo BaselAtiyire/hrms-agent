@@ -1,0 +1,66 @@
+version: "3.9"
+
+# ── Local dev stack — mirrors production layout ───────────────────────
+# Usage:
+#   docker compose up --build          # start
+#   docker compose down -v             # stop + remove volumes
+
+services:
+
+  hrms-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: hrms-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Override DB path to local volume (mirrors EFS in prod)
+      DATABASE_URL: "sqlite:////data/hrms.db"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      APP_ENV: "development"
+      LOG_LEVEL: "debug"
+      # CORS — widen for local dev
+      CORS_ORIGINS: "http://localhost:3000,http://localhost:8000"
+    volumes:
+      # Persistent SQLite — equivalent of EFS mount in prod
+      - hrms-data:/data
+      # Hot-reload: mount source so you don't rebuild on every change
+      - .:/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - hrms-net
+
+  # ── Optional: local reverse proxy (matches ALB behaviour) ────────────
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: hrms-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/local.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      hrms-api:
+        condition: service_healthy
+    networks:
+      - hrms-net
+    profiles:
+      # Only start nginx when explicitly requested:
+      #   docker compose --profile proxy up
+      - proxy
+
+volumes:
+  hrms-data:
+    driver: local
+
+networks:
+  hrms-net:
+    driver: bridge

@@ -1,0 +1,17 @@
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+.git
+.gitignore
+infra
+.terraform
+terraform.exe
+*.tfstate
+*.tfvars
+*.log
+agent_memory.json
+.env
+*.db-journal
+node_modules

@@ -1,0 +1,12 @@
+# infra/prod.tfvars
+# Copy this file, fill in real values, and NEVER commit it to git.
+# Add prod.tfvars to .gitignore.
+
+aws_region      = "us-east-1"
+app_name        = "hrms"
+environment     = "prod"
+cpu             = 512
+memory          = 1024
+desired_count   = 1        # Keep at 1 — SQLite does not support concurrent writers
+image_tag       = "latest" # Overridden by CI/CD with the Git SHA
+openai_api_key  = "sk-..."  # Your real OpenAI key — stored in Secrets Manager
