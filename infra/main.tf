@@ -17,16 +17,17 @@ terraform {
 
 provider "aws" { region = var.aws_region }
 
-variable "aws_region"     { default = "us-east-1" }
-variable "app_name"       { default = "hrms" }
-variable "environment"    { default = "prod" }
-variable "container_port" { default = 8000 }
-variable "cpu"            { default = 512 }
-variable "memory"         { default = 1024 }
-variable "desired_count"  { default = 1 }
-variable "image_tag"      { default = "latest" }
-variable "openai_api_key" { sensitive = true }
-variable "vpc_cidr"       { default = "10.0.0.0/16" }
+variable "aws_region"        { default = "us-east-1" }
+variable "app_name"          { default = "hrms" }
+variable "environment"       { default = "prod" }
+variable "container_port"    { default = 8501 }
+variable "cpu"               { default = 512 }
+variable "memory"            { default = 1024 }
+variable "desired_count"     { default = 1 }
+variable "image_tag"         { default = "latest" }
+variable "openai_api_key"    { sensitive = true }
+variable "anthropic_api_key" { sensitive = true }
+variable "vpc_cidr"          { default = "10.0.0.0/16" }
 
 locals {
   name_prefix = "${var.app_name}-${var.environment}"
@@ -106,32 +107,6 @@ resource "aws_route_table_association" "public" {
   count          = 2
   subnet_id      = aws_subnet.public[count.index].id
   route_table_id = aws_route_table.public.id
-}
-
-resource "aws_eip" "nat" {
-  domain = "vpc"
-  tags   = merge(local.common_tags, { Name = "${local.name_prefix}-nat-eip" })
-}
-
-resource "aws_nat_gateway" "main" {
-  allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public[0].id
-  tags          = merge(local.common_tags, { Name = "${local.name_prefix}-nat" })
-}
-
-resource "aws_route_table" "private" {
-  vpc_id = aws_vpc.main.id
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.main.id
-  }
-  tags = merge(local.common_tags, { Name = "${local.name_prefix}-private-rt" })
-}
-
-resource "aws_route_table_association" "private" {
-  count          = 2
-  subnet_id      = aws_subnet.private[count.index].id
-  route_table_id = aws_route_table.private.id
 }
 
 resource "aws_security_group" "alb" {
@@ -314,10 +289,10 @@ resource "aws_lb_target_group" "hrms" {
   target_type = "ip"
   health_check {
     enabled             = true
-    path = "/_stcore/health"
+    path                = "/_stcore/health"
     healthy_threshold   = 2
     unhealthy_threshold = 3
-    timeout             = 5
+    timeout             = 10
     interval            = 30
     matcher             = "200"
   }
@@ -331,6 +306,36 @@ resource "aws_lb_listener" "http" {
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.hrms.arn
+  }
+}
+
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.hrms.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = "arn:aws:acm:us-east-1:768504743291:certificate/31d07d71-5dd5-447c-b7f9-a215ae3799ac"
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.hrms.arn
+  }
+}
+
+resource "aws_lb_listener_rule" "http_redirect" {
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 1
+  action {
+    type = "redirect"
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+  condition {
+    path_pattern {
+      values = ["/*"]
+    }
   }
 }
 
@@ -367,9 +372,10 @@ resource "aws_ecs_task_definition" "hrms" {
     essential = true
     portMappings = [{ containerPort = var.container_port, protocol = "tcp" }]
     environment = [
-      { name = "APP_ENV",      value = var.environment },
-      { name = "DATABASE_URL", value = "sqlite:////data/hrms.db" },
-      { name = "LOG_LEVEL",    value = "info" }
+      { name = "APP_ENV",            value = var.environment },
+      { name = "DATABASE_URL",       value = "sqlite:////data/hrms.db" },
+      { name = "LOG_LEVEL",          value = "info" },
+      { name = "ANTHROPIC_API_KEY",  value = var.anthropic_api_key }
     ]
     secrets = [{ name = "OPENAI_API_KEY", valueFrom = aws_secretsmanager_secret.openai_key.arn }]
     mountPoints = [{ sourceVolume = "hrms-data", containerPath = "/data", readOnly = false }]
@@ -380,13 +386,6 @@ resource "aws_ecs_task_definition" "hrms" {
         "awslogs-region"        = var.aws_region
         "awslogs-stream-prefix" = "ecs"
       }
-    }
-    healthCheck = {
-      command     = ["CMD-SHELL", "curl -f http://localhost:8501/_stcore/health || exit 1"]
-      interval    = 30
-      timeout     = 5
-      retries     = 3
-      startPeriod = 15
     }
   }])
 
@@ -414,9 +413,9 @@ resource "aws_ecs_service" "hrms" {
   health_check_grace_period_seconds = 120
   force_new_deployment              = true
   network_configuration {
-    subnets          = aws_subnet.private[*].id
+    subnets          = aws_subnet.public[*].id
     security_groups  = [aws_security_group.ecs_task.id]
-    assign_public_ip = false
+    assign_public_ip = true
   }
   load_balancer {
     target_group_arn = aws_lb_target_group.hrms.arn
@@ -432,4 +431,3 @@ output "ecr_repository_url"   { value = aws_ecr_repository.hrms.repository_url }
 output "ecs_cluster_name"     { value = aws_ecs_cluster.hrms.name }
 output "ecs_service_name"     { value = aws_ecs_service.hrms.name }
 output "cloudwatch_log_group" { value = aws_cloudwatch_log_group.hrms.name }
-

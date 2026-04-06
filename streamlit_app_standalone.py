@@ -495,9 +495,10 @@ with tab5:
             with col_a:
                 if st.button("📋 Run daily digest"):
                     with st.spinner("Generating digest..."):
-                        digest = agent.run_scheduled_digest()
-                    st.markdown(digest)
+                        # digest removed from startup
+                        pass
             with col_b:
                 if st.button("🗑️ Clear conversation"):
                     agent.memory.clear_history()
                     st.rerun()
+

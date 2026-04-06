@@ -1,5 +1,5 @@
 """
-C:/HRMS/agent/hr_agent_v2.py
+agent/hr_agent_v2.py
 
 Full production HR Agent with:
   1. Multi-step planning      — complex workflows from one prompt
@@ -10,7 +10,7 @@ Full production HR Agent with:
 
 Usage (from Streamlit agent tab):
     from agent.hr_agent_v2 import HRAgentV2
-    agent = HRAgentV2(db_path=r"C:/HRMS/hrms.db", actor_id="E001")
+    agent = HRAgentV2(db_path=r"/data/hrms.db", actor_id="E001")
     reply = agent.chat("Hire John Doe as a DevOps Engineer in IT reporting to E002")
 
 Usage (scheduler — run from cron / Task Scheduler):
@@ -31,8 +31,8 @@ from sqlalchemy import create_engine, text
 # ── Config ────────────────────────────────────────────────────────────
 MAX_ITERATIONS   = 20      # agentic loop limit
 MAX_TOOL_RETRIES = 3       # self-correction retries per tool call
-MEMORY_FILE      = Path(r"C:/HRMS/agent_memory.json")
-AUDIT_LOG        = Path(r"C:/HRMS/audit.log")
+MEMORY_FILE      = Path("/data/agent_memory.json")
+AUDIT_LOG        = Path("/data/audit.log")
 MODEL            = "claude-sonnet-4-20250514"
 
 # ── Lazy Anthropic import ─────────────────────────────────────────────
@@ -396,7 +396,7 @@ DEFAULT_ONBOARDING_TASKS = [
 
 # ── Main Agent Class ──────────────────────────────────────────────────
 class HRAgentV2:
-    def __init__(self, db_path: str = r"C:\HRMS\hrms.db", actor_id: str = "system"):
+    def __init__(self, db_path: str = "/data/hrms.db", actor_id: str = "system"):
         self.db       = HRDB(db_path)
         self.actor_id = actor_id
         self.memory   = AgentMemory()
