@@ -225,15 +225,19 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for the full step-by-step guide.
 
 ---
 
-## 💰 AWS Cost
+## 💰 Infrastructure Cost
+
+Optimised from **~$62/month → ~$27/month (56% reduction)** by removing the NAT Gateway and moving ECS tasks to public subnets — eliminating the single largest cost driver without compromising application security. The ALB and ACM SSL cert handle all public-facing security at the edge.
 
 | Service | Monthly |
 |---|---|
 | Application Load Balancer | ~$17 |
-| ECS Fargate | ~$9 |
-| EFS (SQLite) | ~$0.30 |
-| ECR + Secrets + CloudWatch | ~$1 |
+| ECS Fargate (0.5 vCPU / 1GB) | ~$9 |
+| EFS (SQLite + audit log) | ~$0.30 |
+| ECR + Secrets Manager + CloudWatch | ~$1 |
 | **Total** | **~$27/month** |
+
+> **Architecture decision:** SQLite on EFS with a single Fargate replica is intentional — it eliminates RDS costs (~$30+/month) while remaining safe for internal HR tooling traffic. The trade-off (no horizontal scaling) is acceptable for this use case.
 
 ---
 
