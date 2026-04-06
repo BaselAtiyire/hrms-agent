@@ -9,25 +9,9 @@
 
 ## 📸 Screenshots
 
-### HR Analytics Dashboard
+### 🏢 HR Analytics Dashboard
 ![HR Analytics Dashboard](docs/screenshots/hrms_basilatiyire_com_HR_Dashboard.png)
 *Real-time KPIs — 14 employees, 4 open tickets, 48 onboarding tasks, 1 pending leave request. Department breakdown and access role distribution charts.*
-
-### 🤖 Claude AI Agent — Proactive Alerts
-![Agent Tab](docs/screenshots/AGENT_TAB.png)
-*The agent proactively surfaces 5 alerts on load — 4 stale tickets open over 7 days and 1 leave request pending over 3 days — without being asked.*
-
-### 🏖️ Leave Request Approval
-![Leave Requests](docs/screenshots/LEAVEREQUEST_TAB.png)
-*Role-based approval flow. Alice Johnson (E001) acting as approver can approve or reject L0001 (Brian Smith, Annual Leave, family trip) with a single click. Full audit trail written on every action.*
-
-### 👥 Employee Directory
-![Employees Tab](docs/screenshots/EMPLOYEETAB.png)
-*Live employee table with department, role, manager, status and system role. Supports status updates with full audit logging.*
-
-### 📋 Audit Log Sidebar
-![Audit Sidebar](docs/screenshots/AUDITSIDE_BAR.png)
-*Structured JSON audit trail. Every approve, reject, close, and update action is logged to `/data/audit.log` on EFS with timestamp, actor, and details.*
 
 ### 🎫 Tickets Overview
 ![Tickets Overview](docs/screenshots/Ticket_Overview.png)
@@ -40,6 +24,22 @@
 ### 🏖️ Leave Request Analytics
 ![Leave Requests Analytics](docs/screenshots/Leave_request.png)
 *1 pending annual leave request. Status and leave type breakdown charts update live. Drill into the table to approve or reject directly.*
+
+### 🏖️ Leave Request Approval
+![Leave Requests](docs/screenshots/LEAVEREQUEST_TAB.png)
+*Role-based approval flow. Alice Johnson (E001) acting as approver can approve or reject L0001 (Brian Smith, Annual Leave, family trip) with a single click. Full audit trail written on every action.*
+
+### 👥 Employee Directory
+![Employees Tab](docs/screenshots/EMPLOYEETAB.png)
+*Live employee table with department, role, manager, status and system role. Supports status updates with full audit logging.*
+
+### 🤖 Claude AI Agent — Proactive Alerts
+![Agent Tab](docs/screenshots/AGENT_TAB.png)
+*The agent proactively surfaces 5 alerts on load — 4 stale tickets open over 7 days and 1 leave request pending over 3 days — without being asked.*
+
+### 📋 Audit Log Sidebar
+![Audit Sidebar](docs/screenshots/AUDITSIDE_BAR.png)
+*Structured JSON audit trail. Every approve, reject, close, and update action is logged to `/data/audit.log` on EFS with timestamp, actor, and details.*
 
 ---
 
