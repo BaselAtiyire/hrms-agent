@@ -27,6 +27,7 @@ variable "desired_count"     { default = 1 }
 variable "image_tag"         { default = "latest" }
 variable "openai_api_key"    { sensitive = true }
 variable "anthropic_api_key" { sensitive = true }
+variable "langsmith_api_key" { sensitive = true }
 variable "vpc_cidr"          { default = "10.0.0.0/16" }
 
 locals {
@@ -375,7 +376,9 @@ resource "aws_ecs_task_definition" "hrms" {
       { name = "APP_ENV",            value = var.environment },
       { name = "DATABASE_URL",       value = "sqlite:////data/hrms.db" },
       { name = "LOG_LEVEL",          value = "info" },
-      { name = "ANTHROPIC_API_KEY",  value = var.anthropic_api_key }
+      { name = "ANTHROPIC_API_KEY",  value = var.anthropic_api_key },
+      { name = "LANGSMITH_API_KEY",  value = var.langsmith_api_key },
+      { name = "LANGCHAIN_PROJECT",  value = "hrms-agent-prod" }
     ]
     secrets = [{ name = "OPENAI_API_KEY", valueFrom = aws_secretsmanager_secret.openai_key.arn }]
     mountPoints = [{ sourceVolume = "hrms-data", containerPath = "/data", readOnly = false }]
