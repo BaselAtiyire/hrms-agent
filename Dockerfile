@@ -20,4 +20,4 @@ ENV STREAMLIT_SERVER_FILE_WATCHER_TYPE=none
 USER appuser
 EXPOSE 8501
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 CMD curl -f http://localhost:8501/_stcore/health || exit 1
-CMD ["sh", "-c", "cp /app/hrms.db /data/hrms.db && streamlit run streamlit_app_standalone.py --server.port=8501 --server.address=0.0.0.0 --server.headless=true --server.fileWatcherType=none --browser.gatherUsageStats=false"]
+CMD ["streamlit", "run", "streamlit_app_standalone.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.headless=true", "--server.fileWatcherType=none", "--browser.gatherUsageStats=false"]
