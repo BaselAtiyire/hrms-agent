@@ -138,3 +138,159 @@ Agent calls tools → SQLite reads/writes → audit log
 GitHub Actions CI/CD
 git push → docker build → ECR push → ECS update
 Every push to main deploys automatically. No manual steps.
+
+### Key design decisions
+
+- **SQLite on EFS over RDS** — cuts database cost from ~$30+/month to ~$0.30/month. Safe for this workload and traffic level.
+- **FastMCP for tool registration** — tools defined once, consumed by the agent cleanly. New capabilities = one tool definition, no agent logic changes.
+- **EFS for all persistent state** — agent memory, database, and audit log survive container restarts. Tested explicitly by killing the Fargate task mid-workflow.
+- **Terraform for 38 AWS resources** — entire stack reproducible from `terraform apply`. Tore it down and rebuilt multiple times during development.
+- **Streamlit for the frontend** — audience is HR managers, not developers. Right tool for internal tooling at this stage.
+
+### How AI coding tools changed my process
+
+I used **Claude** and **Cursor** throughout. Biggest accelerations: Terraform module generation, FastAPI scaffolding, SQLAlchemy models, Pydantic schemas — tasks that would have taken 2–3 hours took 20–30 minutes.
+
+Where tools hit limits: **agent loop debugging**. When the planning loop entered unexpected states, AI tools couldn't diagnose it. That required reading LangSmith execution traces and reasoning through the state machine manually. AI is a force multiplier on velocity; debugging agentic behavior is still a human job.
+
+One structural change: because implementation came fast, I spent more time defining **interfaces and contracts first** — tool input/output schemas before implementations. That inversion made the codebase more modular.
+
+---
+
+## 05 · Getting Started
+
+### Run locally
+
+```bash
+git clone https://github.com/BaselAtiyire/hrms-agent.git
+cd hrms-agent
+
+python -m venv .venv
+source .venv/bin/activate       # Mac/Linux
+# .venv\Scripts\activate        # Windows
+
+pip install -r requirements.txt
+
+cp .env.example .env
+# Add your ANTHROPIC_API_KEY to .env
+
+streamlit run streamlit_app_standalone.py
+# App at http://localhost:8501
+```
+
+### With Docker (recommended)
+
+```bash
+docker compose up --build
+# App at http://localhost:8501
+```
+
+### Environment variables
+
+```bash
+ANTHROPIC_API_KEY=your_key_here
+# See .env.example for full variable list
+```
+
+### AWS deployment
+
+```bash
+cd infra/
+cp prod.tfvars.example prod.tfvars
+terraform init
+terraform apply -var-file="prod.tfvars"
+```
+
+See `DEPLOYMENT.md` for the full step-by-step guide.
+
+---
+
+## 06 · Demo
+
+**Live:** [hrms.basilatiyire.com](https://hrms.basilatiyire.com)
+
+### Hire a new employee
+Agent prompt: "Hire Sarah Connor as DevOps in IT"
+Agent executes:
+
+create_employee(name="Sarah Connor", role="DevOps", dept="IT")
+generate_onboarding_tasks(employee_id=...)
+create_ticket(type="IT_PROVISIONING", assignee=...)
+
+Returns: confirmation with employee ID, task count, ticket reference
+
+### Proactive alert check (no prompt needed)
+
+On load, the agent surfaces stale tickets (>7 days) and pending leave requests (>3 days) before the user types anything.
+
+### Leave approval
+
+HR Admin or Manager approves or rejects with one click. Validated against user role, written to audit log, table updates in real time.
+
+---
+
+## 07 · Testing & Error Handling
+
+### Failure modes addressed
+
+- **Tool call failure mid-workflow** — 3-retry logic. On third failure, agent halts the dependent step and surfaces a specific error rather than silently continuing.
+- **Ambiguous instructions** — agent asks a clarifying question rather than hallucinating a decision. Tested with intentionally underspecified prompts.
+- **Container restart during workflow** — all state on EFS. Killed the Fargate task mid-execution; agent resumed from last persisted state.
+- **Invalid leave approval** — state guards block already-approved requests; role checks fire before the write happens.
+- **Audit completeness** — every write action captured with timestamp, actor, and details. No write succeeds silently.
+
+### What I didn't fully solve
+
+Concurrent workflow conflicts. Single-replica SQLite is safe now, but two simultaneous agent workflows queue sequentially. V2 fix: async task queue with Celery + Redis.
+
+---
+
+## 08 · Future Improvements
+
+**01 — Async task queue**
+Celery + Redis for parallel workflow execution. Unlocks multi-user deployments without the single-replica constraint.
+
+**02 — Live integrations — Workday, Okta, ServiceNow**
+Same agent, same tool interface — just real enterprise systems on the other side instead of local SQLite.
+
+**03 — Multi-agent architecture**
+Specialized subagents for IT provisioning, HRIS, and communications. Orchestrator delegates to each. Simpler agents are more reliable and easier to extend.
+
+**04 — RAG over HR policy documents**
+Embed onboarding playbooks and HR policies so the agent validates workflow steps against current policy without hardcoded rules.
+
+**05 — PostgreSQL on RDS**
+Unlocks horizontal Fargate scaling. SQLite on EFS was the right v1 call; PostgreSQL is the right v2 call.
+
+---
+
+## 09 · Links
+
+| | |
+|---|---|
+| Live demo | [https://hrms.basilatiyire.com](https://hrms.basilatiyire.com) |
+| Repository | [github.com/BaselAtiyire/hrms-agent](https://github.com/BaselAtiyire/hrms-agent) |
+| Video walkthrough | [loom.com/share/37ae9b646ffe4f02b8ace85ed858e413](https://www.loom.com/share/37ae9b646ffe4f02b8ace85ed858e413) |
+
+---
+
+## 10 · Third-Party Libraries
+
+| Library | Purpose |
+|---|---|
+| Anthropic Python SDK | Claude API client |
+| Streamlit | Frontend dashboard |
+| FastAPI | Async Python web framework |
+| FastMCP | Model Context Protocol server |
+| SQLAlchemy | ORM and database abstraction |
+| Pydantic | Data validation |
+| LangSmith | LLM observability and tracing |
+| Terraform | Infrastructure as code |
+| Docker | Containerization |
+
+No proprietary code or confidential information from any employer is included. All credentials use placeholder values in `.env.example`. No live API keys appear anywhere in the repository.
+
+---
+
+*Klaviyo AI Builder Residency Application · Basel Atiyire · April 2026*
+
