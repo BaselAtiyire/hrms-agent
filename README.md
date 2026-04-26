@@ -118,7 +118,6 @@ Latency under concurrent load. The single-replica synchronous design was intenti
 ---
 
 ## 04 · Architecture & Design Decisions
-## 04 · Architecture & Design Decisions
 
 ```
 Internet
