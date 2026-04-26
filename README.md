@@ -1,9 +1,18 @@
-# 🏢 HRMS Agent
+# HRMS Agent — Autonomous AI HR System
 
-> AI-powered Human Resource Management System with a Claude agentic loop, deployed on AWS ECS Fargate with Terraform IaC and GitHub Actions CI/CD.
+> An autonomous AI system that executes multi-step HR workflows — hire, onboard, IT provisioning — from a single natural language prompt. Live in production on AWS ECS Fargate.
 
-**🔗 Live Demo:** [https://hrms.basilatiyire.com](https://hrms.basilatiyire.com)  
-**📦 Repository:** [github.com/BaselAtiyire/hrms-agent](https://github.com/BaselAtiyire/hrms-agent)
+**Basel Atiyire** · basilatiyire@gmail.com · [hrms.basilatiyire.com](https://hrms.basilatiyire.com)
+
+![Python](https://img.shields.io/badge/Python-3.12-blue) ![Claude](https://img.shields.io/badge/Anthropic-Claude_API-orange) ![AWS](https://img.shields.io/badge/AWS-ECS_Fargate-yellow) ![Terraform](https://img.shields.io/badge/Terraform-38_resources-purple) ![Streamlit](https://img.shields.io/badge/Frontend-Streamlit-red)
+
+---
+
+## 🎬 Video Walkthrough
+
+**[Watch on Loom →](https://www.loom.com/share/37ae9b646ffe4f02b8ace85ed858e413)**
+
+The walkthrough covers: why I chose this problem, a live demo of the agent executing a full hire-to-onboard workflow, architecture walkthrough, and what I'd build next.
 
 ---
 
@@ -11,256 +20,250 @@
 
 ### 🏢 HR Analytics Dashboard
 ![HR Analytics Dashboard](docs/screenshots/hrms_basilatiyire_com_HR_Dashboard.png)
-*Real-time KPIs — 14 employees, 4 open tickets, 48 onboarding tasks, 1 pending leave request. Department breakdown and access role distribution charts.*
+*Real-time KPIs — 14 employees, 4 open tickets, 48 onboarding tasks, 1 pending leave request.*
 
 ### 🎫 Tickets Overview
 ![Tickets Overview](docs/screenshots/Ticket_Overview.png)
-*Ticket analytics — 4 open and 1 in-progress tickets. 80% are IT category. Bar and pie charts update in real time from the live database.*
+*4 open and 1 in-progress tickets. 80% are IT category. Charts update in real time from the live database.*
 
 ### 📋 Onboarding Tasks
 ![Onboarding Tasks](docs/screenshots/Onboarding_Task.png)
-*48 pending onboarding tasks evenly split across IT, HR and Manager owners. Tasks are auto-generated on employee hire via the agent workflow.*
-
-### 🏖️ Leave Request Analytics
-![Leave Requests Analytics](docs/screenshots/Leave_request.png)
-*1 pending annual leave request. Status and leave type breakdown charts update live. Drill into the table to approve or reject directly.*
+*48 pending onboarding tasks auto-generated on employee hire via the agent workflow.*
 
 ### 🏖️ Leave Request Approval
 ![Leave Requests](docs/screenshots/LEAVEREQUEST_TAB.png)
-*Role-based approval flow. Alice Johnson (E001) acting as approver can approve or reject L0001 (Brian Smith, Annual Leave, family trip) with a single click. Full audit trail written on every action.*
-
-### 👥 Employee Directory
-![Employees Tab](docs/screenshots/EMPLOYEETAB.png)
-*Live employee table with department, role, manager, status and system role. Supports status updates with full audit logging.*
+*Role-based approval flow. One-click approve/reject with full audit trail written on every action.*
 
 ### 🤖 Claude AI Agent — Proactive Alerts
 ![Agent Tab](docs/screenshots/AGENT_TAB.png)
-*The agent proactively surfaces 5 alerts on load — 4 stale tickets open over 7 days and 1 leave request pending over 3 days — without being asked.*
+*The agent proactively surfaces 4 stale tickets and 1 pending leave request on load — without being asked.*
 
 ### 📋 Audit Log Sidebar
 ![Audit Sidebar](docs/screenshots/AUDITSIDE_BAR.png)
-*Structured JSON audit trail. Every approve, reject, close, and update action is logged to `/data/audit.log` on EFS with timestamp, actor, and details.*
+*Structured JSON audit trail. Every action logged to `/data/audit.log` on EFS with timestamp, actor, and details.*
 
 ---
 
-## 🏗️ Architecture
+## 01 · Problem Statement
 
-```
-Internet
-    │
-    ▼ HTTPS (443)
-Application Load Balancer  ← basilatiyire.com (ACM SSL cert)
-    │
-    ▼ HTTP (8501)
-ECS Fargate Task           ← Streamlit + Claude Agent
-    │                         Single replica (SQLite-safe)
-    ├──► EFS /data/hrms.db    SQLite — encrypted, persistent
-    ├──► EFS /data/audit.log  Audit trail
-    ├──► ECR Image            Docker image (multi-stage build)
-    ├──► Secrets Manager      OPENAI_API_KEY
-    └──► CloudWatch Logs      /ecs/hrms-prod (30-day retention)
-```
+When a company hires someone, a single event fans out into tasks across HR, IT, and management — create the employee record, generate onboarding tasks, open IT provisioning tickets, notify the manager, track completion. In most companies without enterprise integrations, this coordination happens manually: an HR manager opens the HRIS, then a ticketing system, then a spreadsheet, then follows up two days later to see what stalled.
 
----
+The people most affected are **HR and operations staff at small-to-mid-sized companies** who carry coordination overhead that doesn't require their judgment — just their time.
 
-## ✨ Features
-
-### 🤖 Production-Grade AI Agent
-- **Multi-step planning** — "Hire Sarah Connor as DevOps in IT" triggers: create employee → onboarding tasks → IT ticket in one prompt
-- **Persistent memory** — conversation history and facts survive Streamlit restarts via `agent_memory.json` on EFS
-- **Proactive alerts** — agent surfaces overdue onboarding tasks, stale tickets (>7 days), and long-pending leave requests on every load
-- **Self-correction** — failed tool calls retry up to 3 times with graceful fallback messaging
-- **Tool use** — Claude calls 12 tools against live SQLite data (read + write)
-
-### 📊 Analytics Dashboard
-- Real-time KPIs: employee count, open tickets, pending onboarding, pending leave
-- Employees by department (bar chart) and access role (pie chart)
-- Department filter across all tabs
-
-### ✅ Leave Management
-- Role-based approval — only `Manager`, `HR Admin`, `HR Staff` can approve/reject
-- One-click approve ✅ / reject ❌ per request
-- Overlap validation and state guards (can't approve already-approved requests)
-
-### 📋 Audit Trail
-- Every action writes a structured JSON line to `audit.log`
-- Live sidebar panel with action filter and export button
-- Covers: `LEAVE_APPROVED`, `LEAVE_REJECTED`, `TICKET_CLOSED`, `ONBOARDING_TASK_COMPLETED`, `EMPLOYEE_UPDATED`
-
-### 🎫 Ticket & Onboarding Management
-- Close open tickets directly from the dashboard
-- Mark onboarding tasks complete with actor tracking
-- Update employee status with audit log entry
-
----
-
-## 🛠️ Tech Stack
-
-| Layer | Technology |
+| Metric | Value |
 |---|---|
-| **AI Agent** | Anthropic Claude Sonnet (tool use API) |
-| **Frontend** | Streamlit |
-| **Backend** | FastAPI + SQLAlchemy |
-| **Database** | SQLite on AWS EFS |
-| **MCP Server** | FastMCP (HR tools exposed via Model Context Protocol) |
-| **Container** | Docker (multi-stage, non-root user) |
-| **Registry** | AWS ECR |
-| **Compute** | AWS ECS Fargate |
-| **Networking** | AWS ALB + VPC |
-| **Storage** | AWS EFS (encrypted) |
-| **Secrets** | AWS Secrets Manager |
-| **SSL** | AWS Certificate Manager |
-| **DNS** | Namecheap → basilatiyire.com |
-| **IaC** | Terraform (38 AWS resources) |
-| **CI/CD** | GitHub Actions |
-| **Logging** | AWS CloudWatch + structured JSON audit log |
+| Tools the agent can call | 12 |
+| Infrastructure cost reduction | 56% ($62 → $27/month) |
+| Prompts to hire → onboard → IT ticket | 1 |
+
+AI is the right tool here because this isn't a form-fill or a rigid script problem. Onboarding is **conditional and stateful**: if IT provisioning fails, dependent tasks need to hold; if instructions are ambiguous, the system should ask rather than guess. That requires reasoning, not just routing.
 
 ---
 
-## 🚀 CI/CD Pipeline
+## 02 · Solution Overview
 
-```
-git push origin main
-        │
-        ▼
-GitHub Actions
-        ├── docker build
-        ├── docker push → ECR
-        └── aws ecs update-service → ECS Fargate
-        │
-        ▼
-Live at https://hrms.basilatiyire.com
-```
+HRMS Agent is a production-deployed autonomous AI system built on Streamlit + FastAPI, backed by Claude's tool-use API, and running live on AWS ECS Fargate. It accepts natural language instructions and executes complex, multi-step HR workflows — reasoning over tool outputs at each step, recovering from failures, and surfacing proactive alerts without being asked.
 
-Every push to `main` automatically builds, pushes, and deploys. No manual steps.
+### Core agent capabilities
 
----
+- **Multi-step planning** — `"Hire Sarah Connor as DevOps in IT"` triggers: create employee → generate onboarding tasks → open IT ticket, all from one prompt
+- **Persistent memory** — `agent_memory.json` on AWS EFS, surviving Streamlit restarts and container replacements
+- **Proactive alerting** — surfaces stale tickets (>7 days) and pending leave requests (>3 days) on every load without being prompted
+- **Self-correcting execution** — failed tool calls retry up to 3 times with graceful fallback messaging
+- **Role-based access control** — leave approvals restricted to Manager, HR Admin, HR Staff; every action logged to structured JSON audit trail
 
-## 📁 Project Structure
+### Dashboard features
 
-```
-hrms-agent/
-├── agent/
-│   ├── hr_agent_v2.py        # Production agent (5 capabilities)
-│   ├── chat_ai.py            # OpenAI NLP parser
-│   └── hr_agent.py           # Base agent tools
-├── app/
-│   ├── main.py               # FastAPI app + /health endpoint
-│   ├── models.py             # SQLAlchemy models
-│   ├── schemas.py            # Pydantic schemas
-│   ├── services/             # Employee, ticket, leave, onboarding services
-│   └── routes/               # API routes
-├── pages/
-│   └── 1_HR_Dashboard.py     # Multi-page Streamlit dashboard
-├── infra/
-│   └── main.tf               # Terraform — full AWS stack
-├── .github/workflows/
-│   └── deploy.yml            # GitHub Actions CI/CD
-├── streamlit_app_standalone.py  # Main dashboard (no app/ deps)
-├── hr_mcp_server.py          # MCP server
-├── Dockerfile                # Multi-stage build
-├── docker-compose.yml        # Local development
-└── requirements.txt
-```
+- Real-time KPIs: employee count, open tickets, pending onboarding, pending leave
+- Leave approval flow with overlap validation and state guards
+- Ticket and onboarding task management with actor tracking
+- Structured JSON audit sidebar — filterable, exportable
 
 ---
 
-## 🏃 Local Development
+## 03 · AI Integration
 
-**Prerequisites:** Python 3.12, Docker
+### Why Claude's tool-use API
+
+I chose **Claude Sonnet** for its tool-use reliability and structured output consistency. When an agent is executing real write operations against a live database — creating employees, opening tickets, updating statuses — a hallucinated tool call or malformed parameter isn't just unhelpful, it corrupts data. Claude's tool-use API gave me the most consistent, schema-adherent invocation behavior across all my testing.
+
+The agent registers **12 tools** exposed via a **FastMCP server** (`hr_mcp_server.py`) — the Model Context Protocol gives me a structured, auditable interface between the agent and the underlying HR data layer. Every tool call, input, and output is captured in LangSmith for full observability.
+
+### Agentic patterns used
+
+- **Tool-use with chaining** — tools called sequentially; each output informs the next call. The hire workflow chains 3 tools in a single execution.
+- **Sel
+
+- Internet
+│
+▼ HTTPS (443)
+Application Load Balancer  ← basilatiyire.com (ACM SSL cert)
+│
+▼ HTTP (8501)
+ECS Fargate Task           ← Streamlit + Claude Agent
+│                         Single replica (SQLite-safe)
+├──► EFS /data/hrms.db       SQLite — encrypted, persistent
+├──► EFS /data/audit.log     Structured JSON audit trail
+├──► EFS agent_memory.json   Cross-session agent memory
+├──► ECR Image               Docker image (multi-stage build)
+├──► Secrets Manager         ANTHROPIC_API_KEY
+└──► CloudWatch Logs         /ecs/hrms-prod (30-day retention)
+FastMCP Server (hr_mcp_server.py)
+└── 12 HR tools exposed via Model Context Protocol
+Agent calls tools → SQLite reads/writes → audit log
+GitHub Actions CI/CD
+git push → docker build → ECR push → ECS update
+Every push to main deploys automatically. No manual steps.
+
+### Key design decisions
+
+- **SQLite on EFS over RDS** — cuts database cost from ~$30+/month to ~$0.30/month. Safe for this workload and traffic level.
+- **FastMCP for tool registration** — tools defined once, consumed by the agent cleanly. New capabilities = one tool definition, no agent logic changes.
+- **EFS for all persistent state** — agent memory, database, and audit log survive container restarts. Tested explicitly by killing the Fargate task mid-workflow.
+- **Terraform for 38 AWS resources** — entire stack reproducible from `terraform apply`. Tore it down and rebuilt multiple times during development.
+- **Streamlit for the frontend** — audience is HR managers, not developers. Right tool for internal tooling at this stage.
+
+### How AI coding tools changed my process
+
+I used **Claude** and **Cursor** throughout. Biggest accelerations: Terraform module generation, FastAPI scaffolding, SQLAlchemy models, Pydantic schemas — tasks that would have taken 2–3 hours took 20–30 minutes.
+
+Where tools hit limits: **agent loop debugging**. When the planning loop entered unexpected states, AI tools couldn't diagnose it. That required reading LangSmith execution traces and reasoning through the state machine manually. AI is a force multiplier on velocity; debugging agentic behavior is still a human job.
+
+One structural change: because implementation came fast, I spent more time defining **interfaces and contracts first** — tool input/output schemas before implementations. That inversion made the codebase more modular.
+
+---
+
+## 05 · Getting Started
+
+### Run locally
 
 ```bash
 git clone https://github.com/BaselAtiyire/hrms-agent.git
 cd hrms-agent
 
-# Create virtual environment
 python -m venv .venv
-.venv\Scripts\activate  # Windows
-# source .venv/bin/activate  # Mac/Linux
+source .venv/bin/activate       # Mac/Linux
+# .venv\Scripts\activate        # Windows
 
-# Install dependencies
 pip install -r requirements.txt
 
-# Set environment variables
 cp .env.example .env
 # Add your ANTHROPIC_API_KEY to .env
 
-# Run locally
 streamlit run streamlit_app_standalone.py
+# App at http://localhost:8501
 ```
 
-Or with Docker:
+### With Docker (recommended)
+
 ```bash
 docker compose up --build
 # App at http://localhost:8501
 ```
 
----
-
-## ☁️ AWS Deployment
-
-Infrastructure is fully managed with Terraform.
+### Environment variables
 
 ```bash
-# Bootstrap remote state (one-time)
-aws s3 mb s3://hrms-tfstate-prod --region us-east-1
-aws dynamodb create-table --table-name hrms-tfstate-lock ...
+ANTHROPIC_API_KEY=your_key_here
+# See .env.example for full variable list
+```
 
-# Provision infrastructure
+### AWS deployment
+
+```bash
 cd infra/
 cp prod.tfvars.example prod.tfvars
 terraform init
 terraform apply -var-file="prod.tfvars"
-
-# Build and push Docker image
-docker build -t hrms-prod .
-docker push <ecr-url>/hrms-prod:latest
-
-# Force ECS deployment
-aws ecs update-service --cluster hrms-prod-cluster \
-  --service hrms-prod-service --force-new-deployment
 ```
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for the full step-by-step guide.
+See `DEPLOYMENT.md` for the full step-by-step guide.
 
 ---
 
-## 💰 Infrastructure Cost
+## 06 · Demo
 
-Optimised from **~$62/month → ~$27/month (56% reduction)** by removing the NAT Gateway and moving ECS tasks to public subnets — eliminating the single largest cost driver without compromising application security. The ALB and ACM SSL cert handle all public-facing security at the edge.
+**Live:** [hrms.basilatiyire.com](https://hrms.basilatiyire.com)
 
-| Service | Monthly |
+### Hire a new employee
+Agent prompt: "Hire Sarah Connor as DevOps in IT"
+Agent executes:
+
+create_employee(name="Sarah Connor", role="DevOps", dept="IT")
+generate_onboarding_tasks(employee_id=...)
+create_ticket(type="IT_PROVISIONING", assignee=...)
+
+Returns: confirmation with employee ID, task count, ticket reference
+
+### Proactive alert check (no prompt needed)
+On load, the agent surfaces stale tickets (>7 days) and pending leave requests (>3 days) before the user types anything.
+
+### Leave approval
+HR Admin or Manager approves or rejects with one click. Validated against user role, written to audit log, table updates in real time.
+
+---
+
+## 07 · Testing & Error Handling
+
+### Failure modes addressed
+
+- **Tool call failure mid-workflow** — 3-retry logic. On third failure, agent halts the dependent step and surfaces a specific error rather than silently continuing.
+- **Ambiguous instructions** — agent asks a clarifying question rather than hallucinating a decision. Tested with intentionally underspecified prompts.
+- **Container restart during workflow** — all state on EFS. Killed the Fargate task mid-execution; agent resumed from last persisted state.
+- **Invalid leave approval** — state guards block already-approved requests; role checks fire before the write happens.
+- **Audit completeness** — every write action captured with timestamp, actor, and details. No write succeeds silently.
+
+### What I didn't fully solve
+
+Concurrent workflow conflicts. Single-replica SQLite is safe now, but two simultaneous agent workflows queue sequentially. V2 fix: async task queue with Celery + Redis.
+
+---
+
+## 08 · Future Improvements
+
+**01 — Async task queue**
+Celery + Redis for parallel workflow execution. Unlocks multi-user deployments without the single-replica constraint.
+
+**02 — Live integrations — Workday, Okta, ServiceNow**
+Same agent, same tool interface — just real enterprise systems on the other side instead of local SQLite.
+
+**03 — Multi-agent architecture**
+Specialized subagents for IT provisioning, HRIS, and communications. Orchestrator delegates to each. Simpler agents are more reliable and easier to extend.
+
+**04 — RAG over HR policy documents**
+Embed onboarding playbooks and HR policies so the agent validates workflow steps against current policy without hardcoded rules.
+
+**05 — PostgreSQL on RDS**
+Unlocks horizontal Fargate scaling. SQLite on EFS was the right v1 call; PostgreSQL is the right v2 call.
+
+---
+
+## 09 · Links
+
+| | |
 |---|---|
-| Application Load Balancer | ~$17 |
-| ECS Fargate (0.5 vCPU / 1GB) | ~$9 |
-| EFS (SQLite + audit log) | ~$0.30 |
-| ECR + Secrets Manager + CloudWatch | ~$1 |
-| **Total** | **~$27/month** |
-
-> **Architecture decision:** SQLite on EFS with a single Fargate replica is intentional — it eliminates RDS costs (~$30+/month) while remaining safe for internal HR tooling traffic. The trade-off (no horizontal scaling) is acceptable for this use case.
+| Live demo | [https://hrms.basilatiyire.com](https://hrms.basilatiyire.com) |
+| Repository | [github.com/BaselAtiyire/hrms-agent](https://github.com/BaselAtiyire/hrms-agent) |
+| Video walkthrough | [loom.com/share/37ae9b646ffe4f02b8ace85ed858e413](https://www.loom.com/share/37ae9b646ffe4f02b8ace85ed858e413) |
 
 ---
 
-## 🔒 Security
+## 10 · Third-Party Libraries
 
-- Container runs as non-root user (UID 1001)
-- EFS volume encrypted at rest
-- API keys stored in AWS Secrets Manager — never in code or image
-- HTTPS enforced via ACM SSL cert — HTTP redirects to HTTPS
-- ECR image scanning on every push
-- Role-based access control on leave approvals
+| Library | Purpose |
+|---|---|
+| Anthropic Python SDK | Claude API client |
+| Streamlit | Frontend dashboard |
+| FastAPI | Async Python web framework |
+| FastMCP | Model Context Protocol server |
+| SQLAlchemy | ORM and database abstraction |
+| Pydantic | Data validation |
+| LangSmith | LLM observability and tracing |
+| Terraform | Infrastructure as code |
+| Docker | Containerization |
+
+No proprietary code or confidential information from any employer is included. All credentials use placeholder values in `.env.example`. No live API keys appear anywhere in the repository.
 
 ---
 
-## 📄 License
-
-MIT — see [LICENSE.txt](LICENSE.txt)
-
----
-
-## 👤 Author
-
-**Basel Atiyire**  
-🌐 [basilatiyire.com](https://basilatiyire.com)  
-💼 [LinkedIn](https://linkedin.com/in/basilatiyire)  
-📦 [GitHub](https://github.com/BaselAtiyire)
+*Klaviyo AI Builder Residency Application · Basel Atiyire · April 2026*
