@@ -118,9 +118,34 @@ Latency under concurrent load. The single-replica synchronous design was intenti
 ---
 
 ## 04 · Architecture & Design Decisions
+## 04 · Architecture & Design Decisions
+
+```
 Internet
-│
-▼ HTTPS (443)
+    │
+    ▼ HTTPS (443)
+Application Load Balancer  ← basilatiyire.com (ACM SSL cert)
+    │
+    ▼ HTTP (8501)
+ECS Fargate Task           ← Streamlit + Claude Agent
+    │                         Single replica (SQLite-safe)
+    ├──► EFS /data/hrms.db       SQLite — encrypted, persistent
+    ├──► EFS /data/audit.log     Structured JSON audit trail
+    ├──► EFS agent_memory.json   Cross-session agent memory
+    ├──► ECR Image               Docker image (multi-stage build)
+    ├──► Secrets Manager         ANTHROPIC_API_KEY
+    └──► CloudWatch Logs         /ecs/hrms-prod (30-day retention)
+
+FastMCP Server (hr_mcp_server.py)
+    └── 12 HR tools exposed via Model Context Protocol
+        Agent calls tools → SQLite reads/writes → audit log
+
+GitHub Actions CI/CD
+    git push → docker build → ECR push → ECS update
+    Every push to main deploys automatically. No manual steps.
+```
+
+### Key design decisions
 Application Load Balancer  ← basilatiyire.com (ACM SSL cert)
 │
 ▼ HTTP (8501)
