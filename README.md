@@ -287,6 +287,4 @@ SQLite on EFS was the right call for v1 cost optimization. PostgreSQL unlocks ho
 
 No proprietary code, trade secrets, or confidential information from any employer is included. All credentials use placeholder values in `.env.example`. No live API keys appear anywhere in the repository.
 
----
-
-*Klaviyo AI Builder Residency Application · Basel Atiyire · April 2026*
+ · Basel Atiyire · April 2026*
