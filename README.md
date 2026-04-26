@@ -92,29 +92,35 @@ The agent registers **12 tools** exposed via a **FastMCP server** (`hr_mcp_serve
 ### Agentic patterns used
 
 - **Tool-use with chaining** — tools called sequentially; each output informs the next call. The hire workflow chains 3 tools in a single execution.
-- **Sel
+-### Agentic patterns used
 
-- Internet
-│
-▼ HTTPS (443)
-Application Load Balancer  ← basilatiyire.com (ACM SSL cert)
-│
-▼ HTTP (8501)
-ECS Fargate Task           ← Streamlit + Claude Agent
-│                         Single replica (SQLite-safe)
-├──► EFS /data/hrms.db       SQLite — encrypted, persistent
-├──► EFS /data/audit.log     Structured JSON audit trail
-├──► EFS agent_memory.json   Cross-session agent memory
-├──► ECR Image               Docker image (multi-stage build)
-├──► Secrets Manager         ANTHROPIC_API_KEY
-└──► CloudWatch Logs         /ecs/hrms-prod (30-day retention)
-FastMCP Server (hr_mcp_server.py)
-└── 12 HR tools exposed via Model Context Protocol
-Agent calls tools → SQLite reads/writes → audit log
-GitHub Actions CI/CD
-git push → docker build → ECR push → ECS update
-Every push to main deploys automatically. No manual steps.
+- **Tool-use with chaining** — tools called sequentially; each output informs the next call. The hire workflow chains 3 tools in a single execution.
+- **Self-correcting execution** — 3-retry logic with graceful fallback before surfacing errors to the user
+- **Persistent cross-session memory** — `agent_memory.json` on EFS without a separate vector store
+- **Proactive alerting without prompting** — agent scans on load and surfaces time-sensitive items before the user asks
+- **MCP-based tool registry** — tools defined once in FastMCP server, consumed cleanly by the agent
 
+### Tradeoffs considered
+
+| Dimension | Decision | Tradeoff |
+|---|---|---|
+| Cost vs. capability | Claude Sonnet over Opus | Sonnet hits the reliability bar at lower cost. Opus added latency with no quality gain. |
+| Database vs. scalability | SQLite on EFS, single Fargate replica | Eliminated RDS (~$30+/month). Trade-off: no horizontal scaling. |
+| Infrastructure cost vs. security | Public subnets, removed NAT Gateway | Cut cost 56% ($62 → $27). Tight security groups + ALB + ACM SSL. No security regression. |
+| Observability vs. complexity | LangSmith + CloudWatch | LangSmith for per-tool-call traces; CloudWatch for container logs. |
+| Flexibility vs. auditability | Structured JSON audit log | Every write logged with timestamp, actor, details. Fully defensible. |
+
+### Where AI exceeded expectations
+
+The proactive alerting behavior. I defined the tool and gave the agent context about what "stale" meant — but the decision to surface alerts unprompted emerged from the model's instruction-following. I didn't hardcode that; the agent reasoned its way to it.
+
+### Where it fell short
+
+Latency under concurrent load. The single-replica synchronous design was intentional (SQLite safety) but limits throughput. First thing I'd address in v2.
+
+---
+
+## 04 · Architecture & Design Decisions
 ### Key design decisions
 
 - **SQLite on EFS over RDS** — cuts database cost from ~$30+/month to ~$0.30/month. Safe for this workload and traffic level.
