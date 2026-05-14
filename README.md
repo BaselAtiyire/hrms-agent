@@ -256,8 +256,7 @@ SQLite on EFS was the right call for v1 cost optimization. PostgreSQL unlocks ho
 | | |
 |---|---|
 | Live demo | [https://hrms.basilatiyire.com](https://hrms.basilatiyire.com) |
-| Repository | [github.com/BaselAtiyire/hrms-agent](https://github.com/BaselAtiyire/hrms-agent) |
-| Video walkthrough | [loom.com/share/37ae9b646ffe4f02b8ace85ed858e413](https://www.loom.com/share/37ae9b646ffe4f02b8ace85ed858e413) |
+| Repository | [github.com/BaselAtiyire/hrms-agent](https://github.com/BaselAtiyire/hrms-agent)
 
 ---
 
