@@ -6,16 +6,6 @@
 
 ![Python](https://img.shields.io/badge/Python-3.12-blue) ![Claude](https://img.shields.io/badge/Anthropic-Claude_API-orange) ![AWS](https://img.shields.io/badge/AWS-ECS_Fargate-yellow) ![Terraform](https://img.shields.io/badge/Terraform-38_resources-purple) ![Streamlit](https://img.shields.io/badge/Frontend-Streamlit-red)
 
----
-
-## 🎬 Video Walkthrough
-
-**[Watch on Loom →](https://www.loom.com/share/37ae9b646ffe4f02b8ace85ed858e413)**
-
-The walkthrough covers: why I chose this problem, a live demo of the agent executing a full hire-to-onboard workflow, architecture walkthrough, and what I'd build next.
-
----
-
 ## 01 · Problem Statement
 
 When a company hires someone, a single event fans out into tasks across HR, IT, and management — create the employee record, generate onboarding tasks, open IT provisioning tickets, notify the manager, track completion. In most companies without enterprise integrations, this coordination happens manually: an HR manager opens the HRIS, then a ticketing system, then a spreadsheet, then follows up two days later to see what stalled.
